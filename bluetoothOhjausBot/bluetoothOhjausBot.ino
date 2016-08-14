@@ -1,127 +1,62 @@
-
-#include <Servo.h> 
-#include <Wire.h>
-#include <Adafruit_MotorShield.h>
-#include "utility/Adafruit_PWMServoDriver.h"
-#include <SonarSRF08.h>
-#include <SoftwareSerial.h>  
-#include "\Users\Jarno\Arduino\bluetoothOhjausBot\RobotMotorControl.h"
+// BUDGETCACTUS Robot Code. 
 
 #define MAIN_08_ADDRESS (0x70)
 #define GAIN_REGISTER 0x09
 #define LOCATION_REGISTER 0x8C
-char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
 
-SonarSRF08 MainSonar;
+#include <Wire.h>
+#include <Adafruit_MotorShield.h>
+#include <Servo.h>
+#include <SonarSRF08.h>
+#include <SoftwareSerial.h>
+#include <MemoryFree.h>
+#include "utility/Adafruit_PWMServoDriver.h"
+#include "/Users/Jarno/Arduino/bluetoothOhjausBot/MotorController.h"
+#include "/Users/Jarno/Arduino/bluetoothOhjausBot/AvoidObstacleController.h"
+#include "/Users/Jarno/Arduino/bluetoothOhjausBot/BluetoothController.h"
 
-MotorControl motorController;
-int controlMode;  // 1=avoid obstacles; 2=Bluetooth control
+int controlMode;  // 1=Bluetooth control; 2=Avoid obstacles 
 
-// Bluetooth settings
+MotorController* motorController; 
+AvoidObstacleController* avoidObstacleController;
+SonarSRF08* mainSonar;
+ServoController* servoController;
+BluetoothController* bluetoothController;
+unsigned long lastStatusInfo = millis();
 
-int bluetoothTx = 2;  // TX-O pin of bluetooth mate, Arduino D2
-int bluetoothRx = 3;  // RX-I pin of bluetooth mate, Arduino D3
-
-int tiltServoAngle = 90;
-int panServoAngle = 90;
-int previousPanServoAngle = 140;
-
-SoftwareSerial bluetooth(bluetoothTx, bluetoothRx);
 void setup() 
 { 
-      motorController.start(); // Cannot use initialiser to call Motor Shield Library begin() on Motor Shield because it
-                                // must be called in setup
       Serial.begin(9600);  // Begin the serial monitor at 9600bps
       Serial.println("*** BUDGETCACTUS setup... ***");
-      MainSonar.connect(MAIN_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER); // Start Sonar Range Finder:
 
-      // Bluetooth settings:
-      bluetooth.begin(115200);
-      bluetooth.begin(115200);  // The Bluetooth Mate defaults to 115200bps
-      bluetooth.print("$");  // Print three times individually
-      bluetooth.print("$");
-      bluetooth.print("$");  // Enter command mode
-      delay(100);  // Short delay, wait for the Mate to send back CMD
-      bluetooth.println("U,9600,N");  // Temporarily Change the baudrate to 9600, no parity
-
-      // 115200 can be too fast at times for NewSoftSerial to relay the data reliably
+      controlMode = 1; 
+      motorController = new MotorController();
+      servoController = new ServoController();
+      avoidObstacleController = new AvoidObstacleController(motorController, servoController, mainSonar);
+      bluetoothController = new BluetoothController(motorController);
       
-      bluetooth.begin(9600);  // Start bluetooth serial at 9600  
-    
-      controlMode = 2; // Set robot to Bluetooth control mode
+      mainSonar = new SonarSRF08();
+      mainSonar->connect(MAIN_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER); // Start Sonar Range Finder:
       
-      Serial.print("*** BUDGETCACTUS setup complete ***");
+      Serial.println("\n*** BUDGETCACTUS setup complete ***");
 }  
- 
+
 void loop() 
 { 
-
-  if(bluetooth.available())  {
-    char command = (char) bluetooth.read();
-    
-// BLUETOOTH CONTROL MODE
-//
-    if (controlMode == 2) {
-        int result = motorController.executeBluetoothCommand(command);
-
-        if (result == -1) bluetooth.println("*** BUDGETCACTUS v3.5.16;SUPO;seuranta#156445: UNAUTHORIZED ACCESS ***\n"); 
-        while(bluetooth.available()) {
-          bluetooth.read(); // Clear buffer of newline and other extra characters 
-                            // to prevent the message from being sent for every character
-                 }
-      }
+  unsigned long time = millis();
+  if (time - lastStatusInfo > 1000) {
+       lastStatusInfo = time;
+       Serial.print("BUDGETCACTUS live. Free memory=");
+       Serial.println(freeMemory());
     }
-  
- /*
+
+// CHECK FOR BLUETOOTH COMMANDS
+
+    controlMode = bluetoothController->getAndExecuteBluetoothCommand(controlMode);
+
 //  OBSTACLE AVOIDANCE MODE
-// 
-  if (controlMode == 1) {
-      unsigned long time = millis();
-     
-     if (time - sonarPanLastMovement > 400) {
-         sonarPanLastMovement = time;
-        
-         if (panServoAngle == 90 && previousPanServoAngle == 140) {
-           panServoAngle = 40;
-           previousPanServoAngle = 90;
-           }
-         else if (panServoAngle == 90 && previousPanServoAngle == 40) {
-           panServoAngle = 140;
-           previousPanServoAngle = 40;
-           }
-         else if (panServoAngle == 140) {
-           panServoAngle = 90;
-           previousPanServoAngle = 140;
-           }
-         else {
-           panServoAngle = 90;
-           previousPanServoAngle = 40;
-           }
-           
-           
-         setPanAndTilt(panServoAngle, tiltServoAngle);
-      
-         float sensorReading = 0;
-        sensorReading = MainSonar.getRange(unit);
-         
-        if (sensorReading > 30) {
-              AFMS.begin();
-          moveBackward();
-          }
-        if (sensorReading <=30 && sensorReading != 0) {
-          AFMS.begin();    
-          turnLeft();
-          delay(700);
-            
-            } 
-         }
-         
+
+  if (controlMode == 2) {
+         avoidObstacleController->moveRobot();  
       }
-      */
 }
-
-
-
-  
-  
-
