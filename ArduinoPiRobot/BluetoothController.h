@@ -4,7 +4,7 @@
 
 #include <SoftwareSerial.h>
 #include "Arduino.h"
-#include "/Users/Jarno/Arduino/bluetoothOhjausBot/MotorController.h"
+#include "/Users/Jarno/Arduino/ArduinoPiRobot/MotorController.h"
 
 class BluetoothController {
 public:

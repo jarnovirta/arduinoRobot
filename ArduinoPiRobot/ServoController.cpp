@@ -1,12 +1,15 @@
-#include "/Users/Jarno/Arduino/bluetoothOhjausBot/ServoController.h"
+#include "/Users/Jarno/Arduino/ArduinoPiRobot/ServoController.h"
 
 ServoController::ServoController() {
-      tiltServo.attach(9);  // attaches the servo on pin 9 to the servo object 
-      panServo.attach(10);
       setPanAndTilt(90, 90); 
 }
 
 void ServoController::setPanAndTilt(int pan, int tilt) {
-       panServo.write(pan);
-       tiltServo.write(tilt);
+      tiltServo.attach(9);  // attaches the servo on pin 9 to the servo object 
+      panServo.attach(10);
+      panServo.write(pan);
+      tiltServo.write(tilt);
+      delay(100);
+      tiltServo.detach();
+      panServo.detach();
   }

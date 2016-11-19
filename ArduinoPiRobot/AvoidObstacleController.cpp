@@ -1,4 +1,4 @@
-#include "/Users/Jarno/Arduino/bluetoothOhjausBot/AvoidObstacleController.h"
+#include "/Users/Jarno/Arduino/ArduinoPiRobot/AvoidObstacleController.h"
 
 AvoidObstacleController::AvoidObstacleController(MotorController* motorCtrl, ServoController* servoCtrl, SonarSRF08* sonar, BluetoothController* BT) {
       motorController = motorCtrl;
@@ -14,12 +14,12 @@ void AvoidObstacleController::moveRobot() {
        sonarPanLastMovement = time;
         
          if (panServoAngle == 90 && previousPanServoAngle == 140) {
-           panServoAngle = 60;
+           panServoAngle = 40;
            previousPanServoAngle = 90;
            }
-         else if (panServoAngle == 90 && previousPanServoAngle == 60) {
+         else if (panServoAngle == 90 && previousPanServoAngle == 40) {
            panServoAngle = 140;
-           previousPanServoAngle = 60;
+           previousPanServoAngle = 40;
            }
          else if (panServoAngle == 140) {
            panServoAngle = 90;
@@ -27,7 +27,7 @@ void AvoidObstacleController::moveRobot() {
            }
          else {
            panServoAngle = 90;
-           previousPanServoAngle = 60;
+           previousPanServoAngle = 40;
            }
            
           servoController->setPanAndTilt(panServoAngle, tiltServoAngle);
@@ -36,11 +36,10 @@ void AvoidObstacleController::moveRobot() {
          sensorReading = mainSonar->getRange(unit);
         
         if (sensorReading > 30) {
-          bluetoothController->sendMessage("Yli 30");
+          
           motorController->moveForward();
           }
         if (sensorReading <=30 && sensorReading != 0) {
-          bluetoothController->sendMessage("Alle 30");
           motorController->turnLeft();
           delay(700);
             
